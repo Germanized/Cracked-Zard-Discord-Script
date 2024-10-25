@@ -1,6 +1,6 @@
-# Script Disclaimer
+# Scripts Disclaimer
 
-**Note:** I do not guarantee the safety of these scripts. Running these scripts could potentially cause harm to your system or result in a ban on certain platforms. Proceed with caution, and use a virtual machine (VM) if you're comfortable with this approach to help isolate any risks.
+**Note:** I do not guarantee the safety of these scripts. Running these scripts could cause harm to your system or result in a ban on certain platforms. Please be careful, and use a virtual machine (VM) if you're comfortable with this approach to help isolate any risks. some code was obfuscated so that worries me so I have to say that.
 
 ## Source and Safety
 
